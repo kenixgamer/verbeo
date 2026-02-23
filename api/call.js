@@ -17,12 +17,12 @@ export default async function handler(req, res) {
         const records = ipCache.get(ip) || [];
         // Keep requests from the last 15 minutes
         const recentRecords = records.filter(timestamp => now - timestamp < 15 * 60 * 1000);
-        
+
         // Limit to 2 demo calls per IP per 15 minutes
         if (recentRecords.length >= 2) {
             return res.status(429).json({ error: 'Too many requests. Please try again later.' });
         }
-        
+
         recentRecords.push(now);
         ipCache.set(ip, recentRecords);
     }
@@ -32,11 +32,15 @@ export default async function handler(req, res) {
     if (!toNumber) {
         return res.status(400).json({ error: 'Phone number is required' });
     }
-    
+
     // Retrieve environment variables
     const agentId = process.env.VERBEO_AGENT_ID || "32a33c6c-40e1-4147-bb78-2afc86d47e9c";
     const fromNumber = process.env.VERBEO_FROM_NUMBER || "+15418027889";
-    const apiKey = process.env.VERBEO_API_KEY || "vbr_be86bf943bc89e4463d32f63bf1a5c99af4be6c525a4ce1ef9033f39fc02e71a";
+    const apiKey = process.env.VERBEO_API_KEY;
+
+    if (!apiKey) {
+        return res.status(500).json({ error: "Missing VERBEO_API_KEY server environment variable. If running locally, please run 'vercel env pull'." });
+    }
 
     try {
         const response = await fetch("https://api.verbeo.ai/calls", {
